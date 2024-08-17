@@ -17,6 +17,8 @@ type Config struct {
 	DBName                 string
 	JWTExpirationInSeconds int64
 	JWTSecret              string
+	AWSAccesKey            string
+	AWSSecretKey           string
 }
 
 var Envs = initConfig()
@@ -33,6 +35,8 @@ func initConfig() Config {
 		DBName:                 getEnv("DB_NAME", "spotychafa"),
 		JWTSecret:              getEnv("JWT_SECRET", "not-secret-secret-anymore?"),
 		JWTExpirationInSeconds: getEnvInt("JWT_EXP", 3600*24*7),
+		AWSAccesKey:            getEnv("AWS_ACCES_KEY_ID", ""),
+		AWSSecretKey:           getEnv("AWS_SECRET_KEY", ""),
 	}
 }
 

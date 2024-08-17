@@ -8,16 +8,18 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/NicoHernandezR/Back-end-spotychafa-go/service/s3"
 	"github.com/NicoHernandezR/Back-end-spotychafa-go/types"
 	"github.com/NicoHernandezR/Back-end-spotychafa-go/utils"
 )
 
 type Handler struct {
 	store types.Mp3Store
+	awsS3 *s3.S3Client
 }
 
-func NewHandler(store types.Mp3Store) *Handler {
-	return &Handler{store: store}
+func NewHandler(store types.Mp3Store, awsS3 *s3.S3Client) *Handler {
+	return &Handler{store: store, awsS3: awsS3}
 }
 
 func (h *Handler) RegisterRouter(router *http.ServeMux) {
@@ -80,20 +82,19 @@ func (h *Handler) handlerInsertMp3(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Aquí puedes procesar y guardar el archivo en algún directorio o en la base de datos
-	// Por ejemplo, podrías generar un nombre único para el archivo y guardarlo
-	filePath := fmt.Sprintf("uploads/%d.mp3", payload.ID)
-	err = os.WriteFile(filePath, fileBytes, 0644)
-	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("error saving file: %v", err))
-		return
-	}
+
+	fileName := fmt.Sprintf("%s.mp3", payload.ID)
+
+	h.awsS3.Upload(fileBytes, "spotychafa", fileName)
 
 	// Actualizar el campo Mp3File en la estructura payload con la ruta del archivo guardado
-	payload.Mp3File = filePath
+	payload.Mp3File = fileName
 
 	// Insertar en la base de datos
 	err = h.store.InsertMp3(payload)
 	if err != nil {
+		//TODO Cuando ocurra error al insertar el mp3 en la base de datos, eliminar el mp3 del servidor
+		// Para que no se guarde el mp3, siendo que no se guardo en la BD
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
