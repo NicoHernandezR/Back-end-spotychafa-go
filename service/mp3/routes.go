@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strconv"
 
 	"github.com/NicoHernandezR/Back-end-spotychafa-go/service/s3"
@@ -65,15 +64,6 @@ func (h *Handler) handlerInsertMp3(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dir := "uploads"
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		err := os.Mkdir(dir, os.ModePerm)
-		if err != nil {
-			utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("error creating directory: %v", err))
-			return
-		}
-	}
-
 	// Leer los datos del archivo en memoria
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
@@ -87,8 +77,10 @@ func (h *Handler) handlerInsertMp3(w http.ResponseWriter, r *http.Request) {
 
 	h.awsS3.Upload(fileBytes, "spotychafa", fileName)
 
+	filePathReadAWS := h.awsS3.GenerateUrl("spotychafa", fileName)
+
 	// Actualizar el campo Mp3File en la estructura payload con la ruta del archivo guardado
-	payload.Mp3File = fileName
+	payload.Mp3File = filePathReadAWS
 
 	// Insertar en la base de datos
 	err = h.store.InsertMp3(payload)
